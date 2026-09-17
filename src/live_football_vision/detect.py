@@ -45,11 +45,14 @@ class FootballDetector:
     def device(self) -> str:
         return self._device
 
-    def warmup(self, width: int = 640, height: int = 384) -> None:
-        dummy = np.zeros((height, width, 3), dtype=np.uint8)
+    def warmup(self, width: int = 1920, height: int = 1080) -> None:
+        dummy = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+        self.detect(dummy)
+        self.detect(dummy)
         self.detect(dummy)
 
     def detect(self, frame: np.ndarray) -> DetectionResult:
+        frame = np.ascontiguousarray(frame)
         start = time.perf_counter()
         results = self._model.predict(
             source=frame,
