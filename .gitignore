@@ -12,3 +12,5 @@ build/
 *.png
 *.jpg
 *.mp4
+*.pt
+runs/

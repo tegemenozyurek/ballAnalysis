@@ -8,6 +8,8 @@ from live_football_vision.capture import (
     ScreenCaptureError,
     is_likely_permission_blocked,
 )
+from live_football_vision.detect import FootballDetector
+from live_football_vision.model import YOLO_WEIGHTS, load_yolo_model
 from live_football_vision.preview import PreviewCancelled, ReselectRequested, run_preview
 from live_football_vision.region import Region
 from live_football_vision.region_select import RegionSelectCancelled, select_region
@@ -29,6 +31,7 @@ Sonra uygulamayi tamamen kapatip yeniden dene.
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     try:
+        detector = _load_detector()
         with ScreenCapture() as capture:
             _ensure_capture_allowed(capture)
             region = args.region
@@ -37,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
                     region = _pick_region(capture)
                     print(f"Secilen bolge: {region}")
                 try:
-                    run_preview(lambda: capture.grab(region), region)
+                    run_preview(lambda: capture.grab(region), region, detector)
                 except ReselectRequested:
                     region = None
                     continue
@@ -52,10 +55,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
 
+def _load_detector() -> FootballDetector:
+    print(f"Model yukleniyor: {YOLO_WEIGHTS}")
+    model, device = load_yolo_model()
+    detector = FootballDetector(model, device)
+    print(f"Device: {device}")
+    detector.warmup()
+    print("Model hazir.")
+    return detector
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="lfv",
-        description="Mac ekranindan bir bolge yakala ve gercek zamanli goster.",
+        description="Mac ekranindan bir bolge yakala, oyuncu ve topu gercek zamanli tespit et.",
     )
     parser.add_argument(
         "--region",
